@@ -49,6 +49,11 @@ export default function Users() {
       />
       {viewedAuthor && (
         <>
+          {!publicKey && (
+            <div className="border-b bg-gray-50 px-8 py-4 text-center text-gray-500">
+              Connect your wallet to start tweeting...
+            </div>
+          )}
           {publicKey && status === 'loading' && (
             <div className="p-8 text-center text-gray-500">Loading...</div>
           )}

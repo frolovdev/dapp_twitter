@@ -35,6 +35,9 @@ export function useProgram() {
   return program;
 }
 
+export type Accounts = anchor.IdlAccounts<Cryptotwitter>;
+export type TweetAccount = Accounts['tweet'];
+
 export function useTweets(filters: GetProgramAccountsFilter[]) {
   const program = useProgram();
   const { publicKey } = useWallet();

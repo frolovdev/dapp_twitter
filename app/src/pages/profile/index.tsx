@@ -3,16 +3,31 @@ import { ReactElement } from 'react';
 import { Layout } from '../../components/Layout';
 import { TweetForm } from '../../components/TweetForm';
 import { TweetList } from '../../components/TweetList';
+import { authorFilter, useTweets } from '../../services/api';
 
 export default function Profile() {
   const { publicKey } = useWallet();
+
+  const { data: list, status } = useTweets(
+    publicKey ? [authorFilter(publicKey.toBase58())] : [],
+  );
   return (
     <>
       <div className="border-b bg-gray-50 px-8 py-4">
-        {publicKey?.toBase58()}
+        {publicKey ? publicKey?.toBase58() : 'please connect your wallet'}
       </div>
-      <TweetForm></TweetForm>
-      <TweetList notFoundMessage='no tweets...'></TweetList>
+      {publicKey && (
+        <>
+          <TweetForm></TweetForm>
+          {status === 'loading' && (
+            <div className="p-8 text-center text-gray-500">Loading...</div>
+          )}
+
+          {status === 'success' && (
+            <TweetList list={list} notFoundMessage="no tweets..."></TweetList>
+          )}
+        </>
+      )}
     </>
   );
 }

@@ -1,26 +1,16 @@
 import { useWallet } from '@solana/wallet-adapter-react';
-import { topicFilter, useTweets } from '../services/api';
+import { PublicKey } from '@solana/web3.js';
+import { topicFilter, TweetAccount, useTweets } from '../services/api';
 import { TweetCard } from './TweetCard';
 
 export function TweetList({
-  topic,
+  list,
   notFoundMessage,
 }: {
-  topic?: string;
+  list: { account: TweetAccount; publicKey: PublicKey }[];
   notFoundMessage: string;
 }) {
-  const { publicKey } = useWallet();
-  const { data, status } = useTweets(topic ? [topicFilter(topic)] : []);
-
-  if (!publicKey) {
-    return null;
-  }
-
-  if (status !== 'success') {
-    return <div className="p-8 text-center text-gray-500">Loading...</div>;
-  }
-
-  if (data.length === 0) {
+  if (list.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500">{notFoundMessage}</div>
     );
@@ -28,7 +18,7 @@ export function TweetList({
 
   return (
     <>
-      {data.map((tw, i) => (
+      {list.map((tw, i) => (
         <TweetCard
           publicKey={tw.publicKey.toBase58()}
           key={i}

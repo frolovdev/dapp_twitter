@@ -6,6 +6,7 @@ import { TweetList } from '../../components/TweetList';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useRouter } from 'next/router';
 import { TweetForm } from '../../components/TweetForm';
+import { topicFilter, useTweets } from '../../services/api';
 
 export default function Topics() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function Topics() {
   const slugTopic = useSlug(topic);
 
   const { publicKey } = useWallet();
+  const { data: list, status } = useTweets(topic ? [topicFilter(topic)] : []);
 
   function handleSearch() {
     setViewedTopic(slugTopic);
@@ -47,10 +49,15 @@ export default function Topics() {
       {viewedTopic && (
         <>
           <TweetForm forcedTopic={viewedTopic} />
-          <TweetList
-            notFoundMessage="No tweets were found in this topic..."
-            topic={slugTopic}
-          />
+          {publicKey && status === 'loading' && (
+            <div className="p-8 text-center text-gray-500">Loading...</div>
+          )}
+          {publicKey && status === 'success' && (
+            <TweetList
+              notFoundMessage="No tweets were found in this topic..."
+              list={list}
+            />
+          )}
         </>
       )}
     </>

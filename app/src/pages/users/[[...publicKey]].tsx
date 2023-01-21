@@ -4,6 +4,7 @@ import { ReactElement, useState } from 'react';
 import { Layout } from '../../components/Layout';
 import { TweetList } from '../../components/TweetList';
 import { TweetSearch } from '../../components/TweetSearch';
+import { authorFilter, useTweets } from '../../services/api';
 
 export default function Users() {
   const router = useRouter();
@@ -14,6 +15,9 @@ export default function Users() {
   const [viewedAuthor, setViewedAuthor] = useState('');
 
   const { publicKey } = useWallet();
+  const { data: list, status } = useTweets(
+    author ? [authorFilter(author)] : [],
+  );
 
   function handleSearch() {
     setViewedAuthor(author);
@@ -44,10 +48,17 @@ export default function Users() {
         }
       />
       {viewedAuthor && (
-        <TweetList
-          notFoundMessage="No tweets were found in this topic..."
-          topic={author}
-        />
+        <>
+          {publicKey && status === 'loading' && (
+            <div className="p-8 text-center text-gray-500">Loading...</div>
+          )}
+          {publicKey && status === 'success' && (
+            <TweetList
+              list={list}
+              notFoundMessage="No tweets were found in this topic..."
+            />
+          )}
+        </>
       )}
     </>
   );

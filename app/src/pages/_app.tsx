@@ -75,7 +75,7 @@ function MyApp({
               )}
             </Toaster>
             <Head>
-              <title>cryptopayly</title>
+              <title>crypto twitter</title>
               <link
                 rel="stylesheet"
                 href="https://rsms.me/inter/inter.css"

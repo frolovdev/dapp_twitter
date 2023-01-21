@@ -6,25 +6,11 @@ import {
 import { useMemo } from 'react';
 import { Program } from '@project-serum/anchor';
 import { IDL } from '../constants/idl';
-import {
-  clusterApiUrl,
-  Connection,
-  GetProgramAccountsFilter,
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  SystemProgram,
-} from '@solana/web3.js';
+import { GetProgramAccountsFilter } from '@solana/web3.js';
 import * as anchor from '@project-serum/anchor';
 import { PROGRAM_PUBKEY } from '../constants/keys';
 import { Cryptotwitter } from '../constants/idl';
-import { MutationOptions, useMutation, useQuery } from '@tanstack/react-query';
-import { PAYMENT_LINK_STATE, USER_STATE } from '../constants/seeds';
-import { BN, type BN as BNType } from 'bn.js';
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
-import { getMint } from '@solana/spl-token';
-import { usdcAddress } from '../shared';
-import BigNumber from 'bignumber.js';
+import { useQuery } from '@tanstack/react-query';
 import base58 from 'bs58';
 
 export function useProgram() {
@@ -95,10 +81,10 @@ export function useTweetQuery(tweetPublicKey: string) {
 
 export const authorFilter = (authorBase58PublicKey: string) => ({
   memcmp: {
-      offset: 8, // Discriminator.
-      bytes: authorBase58PublicKey,
-  }
-})
+    offset: 8, // Discriminator.
+    bytes: authorBase58PublicKey,
+  },
+});
 
 export const topicFilter = (topic: string): GetProgramAccountsFilter => ({
   memcmp: {

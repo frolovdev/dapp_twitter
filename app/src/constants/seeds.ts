@@ -1,2 +1,0 @@
-export const USER_STATE = 'USER_STATE';
-export const PAYMENT_LINK_STATE = 'PAYMENT_LINK_STATE';

@@ -1,4 +1,4 @@
-import React, { TextareaHTMLAttributes, useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 export const useAutoresizeTextarea = (
   element: React.MutableRefObject<HTMLTextAreaElement | null>,

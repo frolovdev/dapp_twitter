@@ -18,10 +18,7 @@ import { ReactElement, ReactNode, useMemo } from 'react';
 import { ToastBar, Toaster, toast } from 'react-hot-toast';
 import type { NextPage } from 'next';
 import type { AppProps } from 'next/app';
-// import { MetaProvider } from '../lib/MetaProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-// Default styles that can be overridden by your app
 
 
 const queryClient = new QueryClient();
@@ -82,9 +79,7 @@ function MyApp({
               ></link>
             </Head>
             {getLayout(
-              // <MetaProvider>
               <Component {...pageProps} />,
-              // </MetaProvider>,
             )}
           </WalletModalProvider>
         </WalletProvider>

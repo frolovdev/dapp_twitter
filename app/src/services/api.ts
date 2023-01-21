@@ -99,3 +99,5 @@ export const topicFilter = (topic: string): GetProgramAccountsFilter => ({
     bytes: base58.encode(Buffer.from(topic)),
   },
 });
+
+export const useTweetMutation = () => {}

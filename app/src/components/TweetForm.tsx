@@ -1,5 +1,7 @@
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ChangeEvent, useMemo, useRef, useState } from 'react';
+import { useTweetMutation } from '../services/api';
 import { useAutoresizeTextarea } from '../services/useAutosizeTextArea';
 import { useCountCharacterLimit } from '../services/useCountCharacterLimit';
 import { useSlug } from '../services/useSlug';
@@ -11,8 +13,14 @@ export const TweetForm = ({ forcedTopic }: { forcedTopic?: string }) => {
 
   const slugTopic = useSlug(topic);
 
+  const queryClient = useQueryClient();
   const textarea = useRef<HTMLTextAreaElement>(null);
   useAutoresizeTextarea(textarea);
+  const mutation = useTweetMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tweets'] });
+    },
+  });
 
   const characterLimit = useCountCharacterLimit(content, 280);
   const characterLimitColor = useMemo(() => {
@@ -42,6 +50,7 @@ export const TweetForm = ({ forcedTopic }: { forcedTopic?: string }) => {
     if (!canTweet) {
       return;
     }
+    mutation.mutate({ topic, content });
 
     setContent('');
     setTopic('');

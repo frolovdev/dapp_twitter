@@ -9,9 +9,7 @@ import { authorFilter, useTweets } from '../services/api';
 
 export default function HomePage() {
   const { publicKey } = useWallet();
-  const { data: list, status } = useTweets(
-    publicKey ? [authorFilter(publicKey.toBase58())] : [],
-  );
+  const { data: list, status } = useTweets([]);
 
   return (
     <>

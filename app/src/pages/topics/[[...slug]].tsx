@@ -7,16 +7,19 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useRouter } from 'next/router';
 import { TweetForm } from '../../components/TweetForm';
 import { topicFilter, useTweets } from '../../services/api';
+import { NextPageContext } from 'next';
 
 export default function Topics() {
   const router = useRouter();
 
   const [topic, setTopic] = useState((router.query.slug?.[0] || '') as string);
-  const [viewedTopic, setViewedTopic] = useState('');
+  const [viewedTopic, setViewedTopic] = useState(topic);
   const slugTopic = useSlug(topic);
 
   const { publicKey } = useWallet();
-  const { data: list, status } = useTweets(topic ? [topicFilter(topic)] : []);
+  const { data: list, status } = useTweets(
+    viewedTopic ? [topicFilter(viewedTopic)] : [],
+  );
 
   function handleSearch() {
     setViewedTopic(slugTopic);
@@ -63,6 +66,10 @@ export default function Topics() {
     </>
   );
 }
+
+Topics.getInitialProps = async (context: NextPageContext) => {
+  return {};
+};
 
 Topics.getLayout = function getLayout(page: ReactElement) {
   return <Layout>{page}</Layout>;

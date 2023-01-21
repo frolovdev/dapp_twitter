@@ -38,7 +38,7 @@ export const TweetCard = (tweet: {
 
       {tweet.topic && (
         <Link
-          href="/"
+          href={`/topics/${tweet.topic}`}
           className="mt-2 inline-block text-pink-500 hover:underline"
         >
           #{tweet.topic}

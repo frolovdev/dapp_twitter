@@ -1,4 +1,5 @@
 import { useWallet } from '@solana/wallet-adapter-react';
+import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import { ReactElement, useState } from 'react';
 import { Layout } from '../../components/Layout';
@@ -10,13 +11,14 @@ export default function Users() {
   const router = useRouter();
 
   const [author, setAuthor] = useState(
-    (router.query.publicKey?.[0] || '') as string,
+   () => (router.query.publicKey?.[0] || '') as string,
   );
-  const [viewedAuthor, setViewedAuthor] = useState('');
+
+  const [viewedAuthor, setViewedAuthor] = useState(() => author);
 
   const { publicKey } = useWallet();
   const { data: list, status } = useTweets(
-    author ? [authorFilter(author)] : [],
+    viewedAuthor ? [authorFilter(viewedAuthor)] : [],
   );
 
   function handleSearch() {
@@ -68,6 +70,11 @@ export default function Users() {
     </>
   );
 }
+
+Users.getInitialProps = async (context: NextPageContext) => {
+  return {};
+};
+
 
 Users.getLayout = function getLayout(page: ReactElement) {
   return <Layout>{page}</Layout>;

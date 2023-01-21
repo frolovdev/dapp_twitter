@@ -6,11 +6,11 @@ import {
 import { useMemo } from 'react';
 import { Program } from '@project-serum/anchor';
 import { IDL } from '../constants/idl';
-import { GetProgramAccountsFilter } from '@solana/web3.js';
+import { GetProgramAccountsFilter, PublicKey } from '@solana/web3.js';
 import * as anchor from '@project-serum/anchor';
 import { PROGRAM_PUBKEY } from '../constants/keys';
 import { Cryptotwitter } from '../constants/idl';
-import { useQuery } from '@tanstack/react-query';
+import { MutationOptions, useMutation, useQuery } from '@tanstack/react-query';
 import base58 from 'bs58';
 
 export function useProgram() {
@@ -62,7 +62,7 @@ export function useTweets(filters: GetProgramAccountsFilter[]) {
   return query;
 }
 
-export function useTweetQuery(tweetPublicKey: string) {
+export function useTweetQuery(tweetPublicKey: PublicKey) {
   const program = useProgram();
 
   const query = useQuery({
@@ -100,4 +100,37 @@ export const topicFilter = (topic: string): GetProgramAccountsFilter => ({
   },
 });
 
-export const useTweetMutation = () => {}
+type UseTweetMutationVariables = {
+  topic: string;
+  content: string;
+};
+
+export const useTweetMutation = (
+  options?: MutationOptions<unknown, unknown, UseTweetMutationVariables>,
+) => {
+  const program = useProgram();
+  const { publicKey } = useWallet();
+  const mutation = useMutation<unknown, unknown, UseTweetMutationVariables>({
+    ...options,
+    mutationFn: async ({ topic, content }) => {
+      if (!publicKey || !program) {
+        return;
+      }
+
+      const tweet = anchor.web3.Keypair.generate();
+      const result = await program.methods
+        .sendTweet(topic, content)
+        .accounts({
+          author: publicKey,
+          tweet: tweet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([tweet])
+        .rpc();
+
+      return result;
+    },
+  });
+
+  return mutation;
+};

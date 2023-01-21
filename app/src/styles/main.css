@@ -1,0 +1,19 @@
+.wallet-adapter-button {
+    @apply w-full;
+}
+
+.wallet-adapter-button {
+    @apply rounded-full w-full;
+}
+
+.wallet-adapter-button {
+    @apply bg-pink-500 justify-center !important;
+}
+
+.wallet-adapter-button-list {
+    @apply top-auto bottom-full md:top-full md:bottom-auto md:left-0 md:right-auto;
+}
+
+.wallet-adapter-button-list-active {
+    @apply transform -translate-y-3 md:translate-y-3;
+}

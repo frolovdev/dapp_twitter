@@ -1,0 +1,18 @@
+[features]
+seeds = false
+skip-lint = false
+[programs.localnet]
+cryptotwitter = "CBTZC1uPViBPwAqAxJR2ZfUFM9FNoVT8fLUH1TQ8wzXt"
+[programs.devnet]
+cryptotwitter = "CBTZC1uPViBPwAqAxJR2ZfUFM9FNoVT8fLUH1TQ8wzXt"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "Localnet"
+wallet = "/Users/andreyfrolov/.config/solana/id.json"
+
+[scripts]
+test = "npm run test"
+copy-idl = "cp target/types/cryptotwitter.ts app/src/constants/idl.ts"

@@ -1,6 +1,5 @@
-import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
-import { topicFilter, TweetAccount, useTweets } from '../services/api';
+import { TweetAccount } from '../services/api';
 import { TweetCard } from './TweetCard';
 
 export function TweetList({

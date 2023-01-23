@@ -3,17 +3,26 @@ import {
   useConnection,
   useWallet,
 } from '@solana/wallet-adapter-react';
-import { useMemo } from 'react';
-import { Program } from '@project-serum/anchor';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Program, ProgramAccount } from '@project-serum/anchor';
 import { IDL } from '../constants/idl';
 import { GetProgramAccountsFilter, PublicKey } from '@solana/web3.js';
 import * as anchor from '@project-serum/anchor';
 import { PROGRAM_PUBKEY } from '../constants/keys';
 import { Cryptotwitter } from '../constants/idl';
-import { MutationOptions, useMutation, useQuery } from '@tanstack/react-query';
+import {
+  MutationOptions,
+  QueryFunctionContext,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+} from '@tanstack/react-query';
 import base58 from 'bs58';
+import { BN } from 'bn.js';
+import { usePagination } from './usePagination';
+import { useInView } from 'react-intersection-observer';
 
-export function useProgram() {
+export function useWorkspace() {
   const { connection } = useConnection();
   const anchorWallet = useAnchorWallet();
 
@@ -32,38 +41,144 @@ export function useProgram() {
     }
   }, [connection, anchorWallet]);
 
-  return program;
+  return { program, connection, wallet: anchorWallet };
 }
 
 export type Accounts = anchor.IdlAccounts<Cryptotwitter>;
 export type TweetAccount = Accounts['tweet'];
 
-export function useTweets(filters: GetProgramAccountsFilter[]) {
-  const program = useProgram();
+const getPagePublicKeys = (
+  page: number,
+  perPage: number,
+  allPublicKeys: PublicKey[],
+) => {
+  return allPublicKeys.slice((page - 1) * perPage, page * perPage);
+};
+
+type UseTweetsQueryKey = ['tweets', GetProgramAccountsFilter[], any[]];
+
+export function useTweets(filters: GetProgramAccountsFilter[], enabled: boolean = true) {
+  const { program, connection } = useWorkspace();
   const { publicKey } = useWallet();
-  const query = useQuery({
-    queryKey: ['tweets', filters],
+  const page = useRef(1);
+
+  const { ref, inView } = useInView();
+  const perPage = 12;
+
+  const { data: allTweetPublicKeys, status } = useQuery({
+    queryKey: ['tweetPublicKeys', filters],
+    refetchOnWindowFocus: false,
     queryFn: async () => {
-      if (!publicKey || !program) {
+      if (!program) {
         throw new Error();
       }
 
-      const tweets = await program?.account.tweet.all(filters);
+      // Prepare the discriminator filter.
+      const tweetClient = program.account.tweet;
 
-      return tweets;
+      // @ts-expect-error not available right now
+      const tweetAccountName = tweetClient._idlAccount.name;
+      const tweetDiscriminatorFilter = {
+        memcmp: tweetClient.coder.accounts.memcmp(tweetAccountName),
+      };
+
+      // Prefetch all tweets with their timestamps only.
+      const allTweets = await connection.getProgramAccounts(program.programId, {
+        filters: [tweetDiscriminatorFilter, ...filters],
+        dataSlice: { offset: 40, length: 8 },
+      });
+
+      // Parse the timestamp from the account's data.
+      const allTweetsWithTimestamps = allTweets.map(({ account, pubkey }) => ({
+        pubkey,
+        timestamp: new BN(account.data, 'le'),
+      }));
+
+      const sorted = allTweetsWithTimestamps.sort((a, b) =>
+        b.timestamp.sub(a.timestamp).toNumber(),
+      );
+
+      return sorted.map(({ pubkey }) => pubkey);
     },
-    select: (data) =>
-      [...data].sort((a, b) =>
-        a.account.timestamp.sub(b.account.timestamp).toNumber(),
-      ),
-    enabled: Boolean(program && publicKey),
+    enabled: Boolean(program && enabled),
   });
 
-  return query;
+  const query = useInfiniteQuery<
+    ProgramAccount<TweetAccount>[],
+    unknown,
+    ProgramAccount<TweetAccount>[],
+    UseTweetsQueryKey
+  >({
+    queryKey: ['tweets', filters, allTweetPublicKeys || []],
+    getNextPageParam: (lastPage, pages) => {
+      if (!allTweetPublicKeys) {
+        throw new Error();
+      }
+
+      if (pages.flat().length === allTweetPublicKeys.length) {
+        return undefined;
+      }
+
+      const pagePublicKeys = allTweetPublicKeys.slice(
+        (page.current - 1) * perPage,
+        page.current * perPage,
+      );
+
+      return pagePublicKeys;
+    },
+    queryFn: async ({
+      pageParam,
+    }: QueryFunctionContext<UseTweetsQueryKey, PublicKey[]>) => {
+      if (
+        !publicKey ||
+        !program ||
+        !allTweetPublicKeys ||
+        allTweetPublicKeys.length <= 0
+      ) {
+        throw new Error();
+      }
+
+      const defaultPageParam =
+        pageParam ||
+        allTweetPublicKeys.slice(
+          (page.current - 1) * perPage,
+          page.current * perPage,
+        );
+
+      const tweets = (await program.account.tweet.fetchMultiple(
+        defaultPageParam,
+      )) as TweetAccount[];
+
+      const tweetsWithPublicKeys = defaultPageParam.map((pk, i) => ({
+        account: tweets[i],
+        publicKey: pk,
+      }));
+
+      page.current += 1;
+
+      return tweetsWithPublicKeys.filter((tw) => Boolean(tw.account));
+    },
+    refetchOnWindowFocus: false,
+    enabled: Boolean(
+      program && publicKey && Number(allTweetPublicKeys?.length) > 0 && enabled,
+    ),
+  });
+
+  useEffect(() => {
+    const fn = async () => {
+      if (inView && status === 'success' && query.hasNextPage) {
+        await query.fetchNextPage();
+      }
+    };
+
+    fn();
+  }, [page, status, query.hasNextPage, inView]);
+
+  return { ...query, ref };
 }
 
 export function useTweetQuery(tweetPublicKey: PublicKey) {
-  const program = useProgram();
+  const { program } = useWorkspace();
 
   const query = useQuery({
     queryKey: ['tweet', tweetPublicKey],
@@ -82,7 +197,9 @@ export function useTweetQuery(tweetPublicKey: PublicKey) {
   return query;
 }
 
-export const authorFilter = (authorBase58PublicKey: string) => ({
+export const authorFilter = (
+  authorBase58PublicKey: string,
+): GetProgramAccountsFilter => ({
   memcmp: {
     offset: 8, // Discriminator.
     bytes: authorBase58PublicKey,
@@ -108,7 +225,7 @@ type UseTweetMutationVariables = {
 export const useTweetMutation = (
   options?: MutationOptions<unknown, unknown, UseTweetMutationVariables>,
 ) => {
-  const program = useProgram();
+  const { program } = useWorkspace();
   const { publicKey } = useWallet();
   const mutation = useMutation<unknown, unknown, UseTweetMutationVariables>({
     ...options,

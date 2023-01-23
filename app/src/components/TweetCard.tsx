@@ -30,7 +30,7 @@ export const TweetCard = (tweet: {
         <span className="text-gray-500"> • </span>
         <time className="text-sm text-gray-500" title="tweet.created_at">
           <Link href={`/tweets/${tweet.publicKey}`} className="hover:underline">
-            {DateTime.fromMillis(tweet.timestamp).toRelative()}
+            {DateTime.fromSeconds(tweet.timestamp).toRelative()}
           </Link>
         </time>
       </div>

@@ -11,14 +11,21 @@ export default function Users() {
   const router = useRouter();
 
   const [author, setAuthor] = useState(
-   () => (router.query.publicKey?.[0] || '') as string,
+    () => (router.query.publicKey?.[0] || '') as string,
   );
 
   const [viewedAuthor, setViewedAuthor] = useState(() => author);
 
   const { publicKey } = useWallet();
-  const { data: list, status } = useTweets(
+  const {
+    data: list,
+    status,
+    ref,
+    hasNextPage,
+    fetchNextPage,
+  } = useTweets(
     viewedAuthor ? [authorFilter(viewedAuthor)] : [],
+    Boolean(viewedAuthor),
   );
 
   function handleSearch() {
@@ -61,6 +68,9 @@ export default function Users() {
           )}
           {publicKey && status === 'success' && (
             <TweetList
+              onLoadMore={fetchNextPage}
+              ref={ref}
+              hasMore={Boolean(hasNextPage)}
               list={list}
               notFoundMessage="No tweets were found in this topic..."
             />
@@ -74,7 +84,6 @@ export default function Users() {
 Users.getInitialProps = async (context: NextPageContext) => {
   return {};
 };
-
 
 Users.getLayout = function getLayout(page: ReactElement) {
   return <Layout>{page}</Layout>;

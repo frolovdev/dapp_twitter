@@ -17,8 +17,8 @@ export default function Topics() {
   const slugTopic = useSlug(topic);
 
   const { publicKey } = useWallet();
-  const { data: list, status } = useTweets(
-    viewedTopic ? [topicFilter(viewedTopic)] : [],
+  const { data, status, ref, hasNextPage, fetchNextPage } = useTweets(
+    viewedTopic ? [topicFilter(viewedTopic)] : [], Boolean(viewedTopic)
   );
 
   function handleSearch() {
@@ -57,8 +57,11 @@ export default function Topics() {
           )}
           {publicKey && status === 'success' && (
             <TweetList
+              ref={ref}
+              onLoadMore={fetchNextPage}
+              hasMore={Boolean(hasNextPage)}
               notFoundMessage="No tweets were found in this topic..."
-              list={list}
+              list={data}
             />
           )}
         </>

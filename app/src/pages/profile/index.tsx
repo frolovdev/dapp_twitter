@@ -8,9 +8,13 @@ import { authorFilter, useTweets } from '../../services/api';
 export default function Profile() {
   const { publicKey } = useWallet();
 
-  const { data: list, status } = useTweets(
-    publicKey ? [authorFilter(publicKey.toBase58())] : [],
-  );
+  const {
+    data: list,
+    status,
+    ref,
+    fetchNextPage,
+    hasNextPage,
+  } = useTweets(publicKey ? [authorFilter(publicKey.toBase58())] : []);
   return (
     <>
       <div className="border-b bg-gray-50 px-8 py-4">
@@ -24,7 +28,13 @@ export default function Profile() {
           )}
 
           {status === 'success' && (
-            <TweetList list={list} notFoundMessage="no tweets..."></TweetList>
+            <TweetList
+              onLoadMore={fetchNextPage}
+              ref={ref}
+              hasMore={Boolean(hasNextPage)}
+              list={list}
+              notFoundMessage="no tweets..."
+            />
           )}
         </>
       )}

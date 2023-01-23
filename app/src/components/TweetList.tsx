@@ -1,15 +1,19 @@
-import { PublicKey } from '@solana/web3.js';
+import { ProgramAccount } from '@project-serum/anchor';
+import { InfiniteData } from '@tanstack/react-query';
+import React from 'react';
 import { TweetAccount } from '../services/api';
 import { TweetCard } from './TweetCard';
 
-export function TweetList({
-  list,
-  notFoundMessage,
-}: {
-  list: { account: TweetAccount; publicKey: PublicKey }[];
-  notFoundMessage: string;
-}) {
-  if (list.length === 0) {
+export const TweetList = React.forwardRef<
+  HTMLButtonElement,
+  {
+    list: InfiniteData<ProgramAccount<TweetAccount>[]>;
+    notFoundMessage: string;
+    hasMore: Boolean;
+    onLoadMore: any;
+  }
+>(({ list, notFoundMessage, hasMore, onLoadMore }, ref) => {
+  if (list.pages.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500">{notFoundMessage}</div>
     );
@@ -17,16 +21,32 @@ export function TweetList({
 
   return (
     <>
-      {list.map((tw, i) => (
-        <TweetCard
-          publicKey={tw.publicKey.toBase58()}
-          key={i}
-          author={tw.account.author.toBase58()}
-          topic={tw.account.topic}
-          content={tw.account.content}
-          timestamp={tw.account.timestamp.toNumber()}
-        />
-      ))}
+      {list.pages.map((group) =>
+        group.map((tweet) => (
+          <TweetCard
+            key={tweet.account.timestamp.toString()}
+            publicKey={tweet.publicKey.toBase58()}
+            author={tweet.account.author.toBase58()}
+            topic={tweet.account.topic}
+            content={tweet.account.content}
+            timestamp={tweet.account.timestamp.toNumber()}
+          />
+        )),
+      )}
+
+      {hasMore && (
+        <div className="p-8 text-center">
+          <button
+            ref={ref}
+            onClick={onLoadMore}
+            className="rounded-full border bg-gray-50 px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+          >
+            Load more
+          </button>
+        </div>
+      )}
     </>
   );
-}
+});
+
+TweetList.displayName = 'TweetList';

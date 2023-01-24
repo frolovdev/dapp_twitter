@@ -19,7 +19,6 @@ import {
 } from '@tanstack/react-query';
 import base58 from 'bs58';
 import { BN } from 'bn.js';
-import { usePagination } from './usePagination';
 import { useInView } from 'react-intersection-observer';
 
 export function useWorkspace() {

@@ -18,7 +18,11 @@ export default function Profile() {
   return (
     <>
       <div className="border-b bg-gray-50 px-8 py-4">
-        {publicKey ? publicKey?.toBase58() : 'please connect your wallet'}
+        {publicKey
+          ? publicKey.toBase58().slice(0, 8) +
+            '..' +
+            publicKey.toBase58().slice(-4)
+          : 'please connect your wallet'}
       </div>
       {publicKey && (
         <>

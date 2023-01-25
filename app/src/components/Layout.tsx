@@ -183,8 +183,8 @@ export const Layout = ({ children }: PropsWithChildren) => {
       <main className="ml-20 min-h-screen flex-1 border-r border-l md:ml-64">
         <header className="flex items-center justify-between space-x-6 border-b px-8 py-4">
           <div className="text-xl font-bold">
-            {router.asPath.length > 30
-              ? `${router.asPath.slice(0, 30)}...`
+            {router.asPath.length > 20
+              ? `${router.asPath.slice(0, 20)}...`
               : router.asPath}
           </div>
         </header>

@@ -10,6 +10,25 @@ describe('cryptotwitter', () => {
 
   const program = anchor.workspace.Cryptotwitter as Program<Cryptotwitter>;
 
+  const sendTweet = async (
+    author: anchor.Address,
+    topic: string,
+    content: string,
+  ) => {
+    const tweet = anchor.web3.Keypair.generate();
+    await program.methods
+      .sendTweet(topic, content)
+      .accounts({
+        tweet: tweet.publicKey,
+        author,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([tweet])
+      .rpc();
+
+    return tweet;
+  };
+
   it('Sent tweet', async () => {
     const tweet = anchor.web3.Keypair.generate();
     const topic = 'My head';
@@ -143,5 +162,97 @@ describe('cryptotwitter', () => {
     ]);
 
     expect(tweetAccounts.length).toEqual(1);
+  });
+
+  it('can update a tweet', async () => {
+    // Send a tweet and fetch its account.
+    const author = program.provider.publicKey;
+    const tweet = await sendTweet(author, 'web2', 'Hello World!');
+    const tweetAccount = await program.account.tweet.fetch(tweet.publicKey);
+
+    // Ensure it has the right data.
+    expect(tweetAccount.topic).toEqual('web2');
+    expect(tweetAccount.content).toEqual('Hello World!');
+
+    // Update the Tweet.
+    await program.methods
+      .updateTweet('solana', 'gm everyone!')
+      .accounts({
+        tweet: tweet.publicKey,
+        author,
+      })
+      .rpc();
+
+    // Ensure the updated tweet has the updated data.
+    const updatedTweetAccount = await program.account.tweet.fetch(
+      tweet.publicKey,
+    );
+    expect(updatedTweetAccount.topic).toEqual('solana');
+    expect(updatedTweetAccount.content).toEqual('gm everyone!');
+  });
+
+  it("cannot update someone else's tweet", async () => {
+    // Send a tweet.
+    const author = program.provider.publicKey;
+    const tweet = await sendTweet(author, 'solana', 'Solana is awesome!');
+
+    // Update the Tweet.
+
+    const promise = program.methods
+      .updateTweet('eth', 'Ethereum is awesome!')
+      .accounts({
+        tweet: tweet.publicKey,
+        author: anchor.web3.Keypair.generate().publicKey,
+      })
+      .rpc();
+    await expect(promise).rejects.toThrow(/Signature verification failed/);
+
+    // Ensure the tweet account kept the initial data.
+    const tweetAccount = await program.account.tweet.fetch(tweet.publicKey);
+    expect(tweetAccount.topic).toEqual('solana');
+    expect(tweetAccount.content).toEqual('Solana is awesome!');
+  });
+
+  it('can delete a tweet', async () => {
+    // Create a new tweet.
+    const author = program.provider.publicKey;
+    const tweet = await sendTweet(author, 'solana', 'gm');
+
+    // Delete the Tweet.
+    await program.methods
+      .deleteTweet()
+      .accounts({
+        tweet: tweet.publicKey,
+        author,
+      })
+      .rpc();
+
+    // Ensure fetching the tweet account returns null.
+    const tweetAccount = await program.account.tweet.fetchNullable(
+      tweet.publicKey,
+    );
+    expect(tweetAccount).toBeNull();
+  });
+
+  it("cannot delete someone else's tweet", async () => {
+    // Create a new tweet.
+    const author = program.provider.publicKey;
+    const tweet = await sendTweet(author, 'solana', 'gm');
+
+    // Try to delete the Tweet from a different author.
+
+    const promise = program.methods
+      .deleteTweet()
+      .accounts({
+        tweet: tweet.publicKey,
+        author: anchor.web3.Keypair.generate().publicKey,
+      })
+      .rpc();
+    await expect(promise).rejects.toThrow(/Signature verification failed/);
+
+    // Ensure the tweet account still exists with the right data.
+    const tweetAccount = await program.account.tweet.fetch(tweet.publicKey);
+    expect(tweetAccount.topic).toEqual('solana');
+    expect(tweetAccount.content).toEqual('gm');
   });
 });

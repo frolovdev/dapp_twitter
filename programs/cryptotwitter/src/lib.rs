@@ -31,6 +31,42 @@ pub mod cryptotwitter {
 
         Ok(())
     }
+
+    pub fn update_tweet(ctx: Context<UpdateTweet>, topic: String, content: String) -> Result<()> {
+        let tweet: &mut Account<Tweet> = &mut ctx.accounts.tweet;
+
+        if topic.chars().count() > 50 {
+            return Err(DomainErrorCode::TopicTooLong.into())
+        }
+
+        if content.chars().count() > 280 {
+            return Err(DomainErrorCode::ContentTooLong.into())
+        }
+
+        tweet.topic = topic;
+        tweet.content = content;
+
+        Ok(())
+    }
+
+
+    pub fn delete_tweet(_ctx: Context<DeleteTweet>) -> Result<()> {
+        Ok(())
+    }
+}
+
+#[derive(Accounts)]
+pub struct UpdateTweet<'info> {
+    #[account(mut, has_one = author)]
+    pub tweet: Account<'info, Tweet>,
+    pub author: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct DeleteTweet<'info> {
+    #[account(mut, has_one = author, close = author)]
+    pub tweet: Account<'info, Tweet>,
+    pub author: Signer<'info>,
 }
 
 #[derive(Accounts)]

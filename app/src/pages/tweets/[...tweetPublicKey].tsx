@@ -1,7 +1,9 @@
 import { PublicKey } from '@solana/web3.js';
+import { useQueryClient } from '@tanstack/react-query';
 import { NextPageContext } from 'next';
 import { useRouter } from 'next/router';
 import { ReactElement } from 'react';
+import { toast } from 'react-hot-toast';
 import { Layout } from '../../components/Layout';
 import { TweetCard } from '../../components/TweetCard';
 import { useTweetQuery } from '../../services/api';
@@ -9,9 +11,19 @@ import { useTweetQuery } from '../../services/api';
 export default function Tweet() {
   const router = useRouter();
 
-  const { data, status } = useTweetQuery(
-    new PublicKey(router.query.tweetPublicKey?.[0] as string),
+  const publicKeyTweet = new PublicKey(
+    router.query.tweetPublicKey?.[0] as string,
   );
+  const { data, status } = useTweetQuery(publicKeyTweet);
+
+  const queryClient = useQueryClient();
+
+  async function handleSuccessUpdate() {
+    await queryClient.invalidateQueries({
+      queryKey: ['tweet', publicKeyTweet.toBase58()],
+    });
+    toast.success('Tweet updated!');
+  }
 
   if (status !== 'success') {
     return <div className="p-8 text-center text-gray-500">Loading...</div>;
@@ -23,11 +35,11 @@ export default function Tweet() {
 
   return (
     <TweetCard
-      publicKey={router.query.tweetPublicKey as string}
-      author={data.author.toBase58()}
-      topic={data.topic}
-      content={data.content}
-      timestamp={data.timestamp.toNumber()}
+      onSuccessUpdate={handleSuccessUpdate}
+      tweet={{
+        account: data,
+        publicKey: publicKeyTweet,
+      }}
     />
   );
 }

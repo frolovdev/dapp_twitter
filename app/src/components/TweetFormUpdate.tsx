@@ -2,7 +2,7 @@ import { ProgramAccount } from '@project-serum/anchor';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { DateTime } from 'luxon';
 import { ChangeEvent, useMemo, useRef, useState } from 'react';
-import { TweetAccount } from '../services/api';
+import { TweetAccount, useTweetUpdateMutation } from '../services/api';
 import { useAutoresizeTextarea } from '../services/useAutosizeTextArea';
 import { useCountCharacterLimit } from '../services/useCountCharacterLimit';
 import { useSlug } from '../services/useSlug';
@@ -11,7 +11,9 @@ import { Link } from './Link';
 export const TweetFormUpdate = ({
   tweet,
   onClose,
+  onSuccessUpdate,
 }: {
+  onSuccessUpdate?: () => void;
   onClose: () => void;
   tweet: ProgramAccount<TweetAccount>;
 }) => {
@@ -20,6 +22,7 @@ export const TweetFormUpdate = ({
   const [content, setContent] = useState(tweet.account.content);
   const [topic, setTopic] = useState(tweet.account.topic);
   const slugTopic = useSlug(topic);
+  const mutation = useTweetUpdateMutation({ onSuccess: onSuccessUpdate });
 
   const characterLimit = useCountCharacterLimit(content, 280);
   const characterLimitColor = useMemo(() => {
@@ -36,7 +39,19 @@ export const TweetFormUpdate = ({
   const textarea = useRef<HTMLTextAreaElement>(null);
   useAutoresizeTextarea(textarea);
 
-  function handleUpdate() {}
+  async function handleUpdate() {
+    if (!canTweet) {
+      return;
+    }
+    await mutation.mutateAsync({
+      topic,
+      content,
+      author: tweet.account.author,
+      tweetPublicKey: tweet.publicKey,
+    });
+
+    onClose();
+  }
 
   function handleClose() {
     onClose();
@@ -130,7 +145,7 @@ export const TweetFormUpdate = ({
                 className={`rounded-full px-4 py-2 font-semibold text-white ${
                   canTweet ? 'bg-pink-500' : 'cursor-not-allowed bg-pink-300'
                 }`}
-                disabled={canTweet}
+                disabled={!canTweet}
                 onClick={handleUpdate}
               >
                 Update

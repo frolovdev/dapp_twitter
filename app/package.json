@@ -10,7 +10,7 @@
     "lint": "next lint",
     "fmt": "prettier --write src",
     "fmt:check": "prettier --check src",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit --noUnusedLocals",
     "scripts:random": "node scripts/randomVal.js"
   },
   "dependencies": {

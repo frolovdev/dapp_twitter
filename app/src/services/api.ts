@@ -3,7 +3,7 @@ import {
   useConnection,
   useWallet,
 } from '@solana/wallet-adapter-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Program, ProgramAccount } from '@project-serum/anchor';
 import { IDL } from '../constants/idl';
 import { GetProgramAccountsFilter, PublicKey } from '@solana/web3.js';
@@ -11,15 +11,19 @@ import * as anchor from '@project-serum/anchor';
 import { PROGRAM_PUBKEY } from '../constants/keys';
 import { Cryptotwitter } from '../constants/idl';
 import {
+  InfiniteData,
   MutationOptions,
+  QueryClient,
   QueryFunctionContext,
   useInfiniteQuery,
   useMutation,
   useQuery,
+  useQueryClient,
 } from '@tanstack/react-query';
 import base58 from 'bs58';
 import { BN } from 'bn.js';
 import { useInView } from 'react-intersection-observer';
+import { toast } from 'react-hot-toast';
 
 export function useWorkspace() {
   const { connection } = useConnection();
@@ -46,17 +50,12 @@ export function useWorkspace() {
 export type Accounts = anchor.IdlAccounts<Cryptotwitter>;
 export type TweetAccount = Accounts['tweet'];
 
-const getPagePublicKeys = (
-  page: number,
-  perPage: number,
-  allPublicKeys: PublicKey[],
-) => {
-  return allPublicKeys.slice((page - 1) * perPage, page * perPage);
-};
-
 type UseTweetsQueryKey = ['tweets', GetProgramAccountsFilter[], any[]];
 
-export function useTweets(filters: GetProgramAccountsFilter[], enabled: boolean = true) {
+export function useTweets(
+  filters: GetProgramAccountsFilter[],
+  enabled: boolean = true,
+) {
   const { program, connection } = useWorkspace();
   const { publicKey } = useWallet();
   const page = useRef(1);
@@ -180,7 +179,7 @@ export function useTweetQuery(tweetPublicKey: PublicKey) {
   const { program } = useWorkspace();
 
   const query = useQuery({
-    queryKey: ['tweet', tweetPublicKey],
+    queryKey: ['tweet', tweetPublicKey.toBase58()],
     queryFn: async () => {
       if (!program) {
         throw new Error();
@@ -242,6 +241,151 @@ export const useTweetMutation = (
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .signers([tweet])
+        .rpc();
+
+      return result;
+    },
+  });
+
+  return mutation;
+};
+
+export type UseTweetUpdateMutationVariables = {
+  topic: string;
+  content: string;
+  tweetPublicKey: PublicKey;
+  author: PublicKey;
+};
+
+function tweetUpdater(
+  queryClient: QueryClient,
+  variables: UseTweetUpdateMutationVariables,
+) {
+  const queries = queryClient
+    .getQueryCache()
+    .findAll(['tweets'], { type: 'active' });
+
+  for (const query of queries) {
+    const data = query.state.data as InfiniteData<
+      ProgramAccount<TweetAccount>[]
+    >;
+
+    for (const [pageI, page] of data.pages.entries()) {
+      for (const [itemI, tweet] of page.entries()) {
+        if (
+          tweet.publicKey.toBase58() === variables.tweetPublicKey.toBase58()
+        ) {
+          const newVal = { ...data };
+          const tweetToUpdate = newVal.pages[pageI][itemI];
+
+          tweetToUpdate.account.topic = variables.topic;
+          tweetToUpdate.account.content = variables.content;
+
+          queryClient.setQueryData(query.queryKey, newVal);
+          return;
+        }
+      }
+    }
+  }
+}
+
+export const useTweetUpdateMutation = (
+  options?: MutationOptions<unknown, unknown, UseTweetUpdateMutationVariables>,
+) => {
+  const { program } = useWorkspace();
+  const { publicKey } = useWallet();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation<
+    unknown,
+    unknown,
+    UseTweetUpdateMutationVariables
+  >({
+    onSuccess: (_data, variables) => {
+      tweetUpdater(queryClient, variables);
+
+      toast.success('Tweet updated!');
+    },
+    ...options,
+
+    mutationFn: async ({ topic, content, tweetPublicKey, author }) => {
+      if (!publicKey || !program) {
+        return;
+      }
+
+      const result = await program.methods
+        .updateTweet(topic, content)
+        .accounts({
+          tweet: tweetPublicKey,
+          author,
+        })
+        .rpc();
+
+      return result;
+    },
+  });
+
+  return mutation;
+};
+
+type UseTweetDeleteMutationVariables = {
+  tweetPublicKey: PublicKey;
+  author: PublicKey;
+};
+
+function tweetDeleteUpdater(
+  queryClient: QueryClient,
+  variables: UseTweetDeleteMutationVariables,
+) {
+  const queries = queryClient
+    .getQueryCache()
+    .findAll(['tweets'], { type: 'active' });
+
+  for (const query of queries) {
+    const data = query.state.data as InfiniteData<
+      ProgramAccount<TweetAccount>[]
+    >;
+
+    for (const [pageI, page] of data.pages.entries()) {
+      for (const [itemI, tweet] of page.entries()) {
+        if (
+          tweet.publicKey.toBase58() === variables.tweetPublicKey.toBase58()
+        ) {
+          const newVal = { ...data };
+
+          newVal.pages[pageI].splice(itemI, 1);
+
+          queryClient.setQueryData(query.queryKey, newVal);
+          return;
+        }
+      }
+    }
+  }
+}
+
+export const useTweetDeleteMutation = () => {
+  const { program } = useWorkspace();
+  const { publicKey } = useWallet();
+  const queryClient = useQueryClient();
+  const mutation = useMutation<
+    unknown,
+    unknown,
+    UseTweetDeleteMutationVariables
+  >({
+    onSuccess: (_data, variables) => {
+      tweetDeleteUpdater(queryClient, variables);
+      toast.success('Tweet deleted!');
+    },
+    mutationFn: async ({ tweetPublicKey, author }) => {
+      if (!publicKey || !program) {
+        return;
+      }
+      const result = await program.methods
+        .deleteTweet()
+        .accounts({
+          tweet: tweetPublicKey,
+          author,
+        })
         .rpc();
 
       return result;

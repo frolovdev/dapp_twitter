@@ -1,5 +1,4 @@
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useQueryClient } from '@tanstack/react-query';
 import { ChangeEvent, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTweetMutation } from '../services/api';
@@ -7,11 +6,7 @@ import { useAutoresizeTextarea } from '../services/useAutosizeTextArea';
 import { useCountCharacterLimit } from '../services/useCountCharacterLimit';
 import { useSlug } from '../services/useSlug';
 
-export const TweetForm = ({
-  forcedTopic,
-}: {
-  forcedTopic?: string;
-}) => {
+export const TweetForm = ({ forcedTopic }: { forcedTopic?: string }) => {
   const { connected } = useWallet();
   const [content, setContent] = useState('');
   const [topic, setTopic] = useState('');
@@ -22,7 +17,7 @@ export const TweetForm = ({
   useAutoresizeTextarea(textarea);
   const mutation = useTweetMutation({
     onSuccess: () => {
-      toast.success('Tweet created')
+      toast.success('Tweet created');
     },
   });
 

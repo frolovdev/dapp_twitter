@@ -4,16 +4,19 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useMemo, useState } from 'react';
 import { TweetFormUpdate } from './TweetFormUpdate';
 import { ProgramAccount } from '@project-serum/anchor';
-import { TweetAccount } from '../services/api';
+import { TweetAccount, useTweetDeleteMutation } from '../services/api';
 
 export const TweetCard = ({
   tweet,
+  onSuccessUpdate
 }: {
+  onSuccessUpdate?: () => void
   tweet: ProgramAccount<TweetAccount>;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
 
   const { publicKey } = useWallet();
+  const mutation = useTweetDeleteMutation();
 
   const isMyTweet =
     publicKey && publicKey.toBase58() === tweet.account.author.toBase58();
@@ -25,7 +28,12 @@ export const TweetCard = ({
     }
   }, [publicKey, tweet.account.author]);
 
-  function handleDelete() {}
+  function handleDelete() {
+    mutation.mutate({
+      tweetPublicKey: tweet.publicKey,
+      author: tweet.account.author,
+    });
+  }
   function handleClose() {
     setIsEditing(false);
   }
@@ -33,7 +41,7 @@ export const TweetCard = ({
   return (
     <>
       {isEditing && (
-        <TweetFormUpdate onClose={handleClose} tweet={tweet}></TweetFormUpdate>
+        <TweetFormUpdate onSuccessUpdate={onSuccessUpdate} onClose={handleClose} tweet={tweet}></TweetFormUpdate>
       )}
       <div className="px-8 py-4">
         <div>

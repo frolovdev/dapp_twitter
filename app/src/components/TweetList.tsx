@@ -25,11 +25,7 @@ export const TweetList = React.forwardRef<
         group.map((tweet) => (
           <TweetCard
             key={tweet.account.timestamp.toString()}
-            publicKey={tweet.publicKey.toBase58()}
-            author={tweet.account.author.toBase58()}
-            topic={tweet.account.topic}
-            content={tweet.account.content}
-            timestamp={tweet.account.timestamp.toNumber()}
+            tweet={tweet}
           />
         )),
       )}
